@@ -1,0 +1,13 @@
+[kibana_server]
+54.167.240.23
+
+[lognodes]
+
+
+[elk_servers:children]
+kibana_server
+lognodes
+
+[elk_servers:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/aws_keypair.pem

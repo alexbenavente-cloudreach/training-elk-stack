@@ -1,0 +1,14 @@
+# Specify the incoming logs from the beats in Logstash over Port 5044
+ 
+input {
+  beats {
+    port => 5044
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}" 
+  }
+}

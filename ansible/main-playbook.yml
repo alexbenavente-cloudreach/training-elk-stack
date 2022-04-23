@@ -1,0 +1,149 @@
+---
+- hosts: elk_servers
+  become: true
+  tasks:
+    - name: Updating apt repo on Ubuntu
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: Upgrading all packages on Ubuntu
+      apt:
+        upgrade: dist
+        force_apt_get: yes
+
+    - name: Installing OpenJDK Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+
+    - name: Adding Elasticsearch PGP Key
+      shell: |
+        wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+      args:
+        warn: no
+
+    - name: Adding Elasticsearch repository
+      copy:
+        dest: /etc/apt/sources.list.d/elastic-7.x.list
+        content: |
+          deb https://artifacts.elastic.co/packages/7.x/apt stable main
+
+    - name: Installing Elasticsearch package
+      apt:
+        name: elasticsearch
+        state: present
+        update_cache: yes
+
+# Update Elasticsearch config file to allow access (to secure Elasticsearch, bind to 'localhost'). 
+    - name: Updating the config file to allow outside access
+      lineinfile:
+        destfile: /etc/elasticsearch/elasticsearch.yml
+        regexp: 'network.host:'
+        line: 'network.host: 0.0.0.0'
+
+# Update Elasticsearch port in config file 
+    - name: Updating the port in config file 
+      lineinfile:
+        destfile: /etc/elasticsearch/elasticsearch.yml
+        regexp: 'http.port:'
+        line: 'http.port: 9200'
+      notify:
+        - Start Elasticsearch
+        - Enable Elasticsearch
+
+# Install Logstash
+    - name: Installing Logstash
+      apt:
+        name: logstash
+        update_cache: yes
+
+    - name: Configuring Filebeat config file for logstash
+      copy:
+        src: "templates/logstash.conf.j2"
+        dest: "/etc/logstash/logstash.conf"
+
+# Enable Logstash service
+    - name: Enable Logstash service
+      systemd:
+        name: logstash
+        enabled: yes
+
+# Start Logstash service
+    - name: Start Logstash service
+      systemd:
+        name: logstash
+        state: started
+        daemon_reload: yes
+
+# Install Kibana
+    - name: Installing Kibana
+      apt:
+        name: kibana
+        update_cache: yes
+
+# Configure Kibana
+    - name: Defining kibana server port
+      lineinfile:
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'server.port:'
+        line: 'server.port: 5601'
+        
+    - name: Updating the kibana config file to allow outside access
+      lineinfile:
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'server.host:'
+        line: 'server.host: 0.0.0.0'
+
+    - name: Defining Elasticsearch hosts URL
+      lineinfile:
+        destfile: /etc/kibana/kibana.yml
+        regexp: 'elasticsearch.hosts:'
+        line: 'elasticsearch.hosts: "http://localhost:9200"'
+
+# Starting Kibana
+    - name: Starting Kibana
+      service:
+        name: kibana
+        state: started
+
+# Filebeat
+    - name: Installing Filebeat
+      apt:
+        name: filebeat
+        update_cache: yes
+
+    - name: Configuring Filebeat config file for logstash
+      copy:
+        src: "templates/filebeat.yml.j2"
+        dest: "/etc/filebeat/filebeat.yml"
+
+    - name: Starting Filebeat
+      service:
+        name: filebeat
+        state: started
+
+# Metricbeat
+    - name: Installing Metricbeat
+      apt:
+        name: metricbeat
+        update_cache: yes
+
+    - name: Starting Metricbeat
+      service:
+        name: metricbeat
+        state: started
+
+  handlers:
+    - name: Start Elasticsearch
+      systemd:
+        name: elasticsearch
+        state: started
+
+    - name: Enable Elasticsearch
+      systemd:
+        name: elasticsearch
+        enabled: yes
+
+
