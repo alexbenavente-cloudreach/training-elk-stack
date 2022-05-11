@@ -31,3 +31,8 @@ variable "my_keypair" {
 variable "number_of_instances" {
   description = "Number of instances for my public subnet"
 }
+
+variable "elk_ports" {
+  type        = list(number)
+  description = "list of ELK ingress ports"
+}

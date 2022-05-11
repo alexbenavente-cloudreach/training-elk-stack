@@ -49,9 +49,13 @@
         destfile: /etc/elasticsearch/elasticsearch.yml
         regexp: 'http.port:'
         line: 'http.port: 9200'
-      notify:
-        - Start Elasticsearch
-        - Enable Elasticsearch
+    
+# Update Elasticsearch discovery in config file 
+    - name: Updating the discovery in config file 
+      lineinfile:
+        destfile: /etc/elasticsearch/elasticsearch.yml
+        regexp: 'discovery.seed_hosts:'
+        line: 'discovery.seed_hosts: []'
 
 # Install Logstash
     - name: Installing Logstash
@@ -59,7 +63,7 @@
         name: logstash
         update_cache: yes
 
-    - name: Configuring Filebeat config file for logstash
+    - name: Configuring config file for logstash
       copy:
         src: "templates/logstash.conf.j2"
         dest: "/etc/logstash/logstash.conf"
@@ -114,7 +118,7 @@
         name: filebeat
         update_cache: yes
 
-    - name: Configuring Filebeat config file for logstash
+    - name: Copying config file for Filebeat
       copy:
         src: "templates/filebeat.yml.j2"
         dest: "/etc/filebeat/filebeat.yml"
@@ -130,10 +134,29 @@
         name: metricbeat
         update_cache: yes
 
+    - name: Copying config file for Metricbeat
+      copy:
+        src: "templates/metricbeat.yml.j2"
+        dest: "/etc/metricbeat/metricbeat.yml"
+
     - name: Starting Metricbeat
       service:
         name: metricbeat
         state: started
+
+    - name: Enabling Elasticsearch
+      systemd:
+        name: elasticsearch
+        enabled: yes
+
+    - name: Starting Elasticsearch
+      systemd:
+        name: elasticsearch
+        state: started
+
+    
+
+
 
   handlers:
     - name: Start Elasticsearch

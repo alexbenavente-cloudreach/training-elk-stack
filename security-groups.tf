@@ -5,7 +5,18 @@ resource "aws_security_group" "elk_server_sg" {
 
   # INBOUND CONNECTIONS
 
-  # ElasticSearch Port
+  dynamic "ingress" {
+    for_each = var.elk_ports
+    iterator = port
+    content {
+      from_port   = port.value
+      to_port     = port.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  /* # ElasticSearch Port
   ingress {
     description = "Allow elasticsearch traffic"
     from_port   = 9200
@@ -21,14 +32,6 @@ resource "aws_security_group" "elk_server_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  # Logstash Port
-  ingress {
-    description = "Allow logstash traffic"
-    from_port   = 5043
-    to_port     = 5044
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
   # SSH Port
   ingress {
     description = "Allow ssh traffic"
@@ -37,6 +40,16 @@ resource "aws_security_group" "elk_server_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  # */
+  # Logstash Port
+  ingress {
+    description = "Allow logstash traffic"
+    from_port   = 5043
+    to_port     = 5044
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
 
   # OUTBOUND CONNECTIONS
   egress {
